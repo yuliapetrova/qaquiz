@@ -1,0 +1,5 @@
+api:
+  token: "edaf007f-bd12-424e-bca3-e1361e0d6860"
+  baseUrl: "https://qa-quiz.natera.com/"
+restAssuredSettings:
+  debugMode: "true"
