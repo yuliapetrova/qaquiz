@@ -14,7 +14,7 @@ public class TriangleResponse {
 
     @Exclude
     private String id;
-    private int firstSide;
-    private int secondSide;
-    private int thirdSide;
+    private Double firstSide;
+    private Double secondSide;
+    private Double thirdSide;
 }

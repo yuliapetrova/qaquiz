@@ -63,5 +63,11 @@ public class TriangleServiceUtils {
                 .body(body)
                 .post(TRIANGLE);
     }
+
+    public static Response createTriangle(String body) {
+        return getAuthRequestSpecification()
+                .body(body)
+                .post(TRIANGLE);
+    }
 }
 
