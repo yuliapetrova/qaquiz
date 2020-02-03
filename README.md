@@ -15,12 +15,14 @@ You can run all tests with Maven by using the command: mvn clean test.
 
 ## Framework structure
 
+```
 ─src/main/java
     │       
     ├───com.natera.qaquiz
     │   ├───config
     │   ├───helpers
     │   ├───models
+```
 
 **Config** 
 
@@ -36,13 +38,14 @@ Models package contains builder classes for REST API requests/responses.
 
 **Tests**
 
+```
 ─src/main/test
     │       
     ├───com.natera.qaquiz
     │   ├───servicetests
     │   ├───BaseTest
     │   ├───FrameworkTests
-  
+```  
 
 Servicetests package contains tests for the Triangle Service.
 
