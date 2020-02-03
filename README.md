@@ -24,15 +24,15 @@ You can run all tests with Maven by using the command: mvn clean test.
 
 **Config** 
 
-Config package contains classes to support reading of application.yaml file that has endpoint, API token and Rest Assured settings.
+Config package contains classes to support reading of application.yaml file with basic settings. 
 
 **Helpers**   
 
-Helpers package contains utility classes for work with Triangle service method requests.
+Helpers package contains utility classes to work with Triangle Service method requests.
 
 **Models**
 
-Models package contains builder classes of REST API requests/responses.
+Models package contains builder classes for REST API requests/responses.
 
 **Tests**
 
