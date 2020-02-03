@@ -2,9 +2,15 @@
 
 The given framework has been developed for automated testing of the Triangle Service https://qa-quiz.natera.com/.
 
+## Test results
+
+Please observe the latest test results using Git workflow https://github.com/yuliapetrova/qaquiz/actions.
+The latest run has 6 Failures https://github.com/yuliapetrova/qaquiz/runs/422386351?check_suite_focus=true
+due to issues in service posted here https://github.com/yuliapetrova/qaquiz/issues.  
+
 ## Running the tests
 
-You can run all tests with Maven by using the command: mvn clean test.
+You can also run all tests with Maven by using the command: mvn clean test.
 
 ## Built With
 
