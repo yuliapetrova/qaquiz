@@ -7,28 +7,24 @@ import static com.natera.qaquiz.helpers.TriangleServiceUtils.getAllTriangles;
 import static com.natera.qaquiz.helpers.TriangleServiceUtils.getArea;
 import static com.natera.qaquiz.helpers.TriangleServiceUtils.getPerimeter;
 import static com.natera.qaquiz.helpers.TriangleServiceUtils.getTriangleById;
-import static java.lang.Double.*;
+import static java.lang.Double.MAX_VALUE;
 import static java.util.stream.Collectors.toList;
-import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNPROCESSABLE_ENTITY;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.of;
 
+import com.natera.qaquiz.models.ResultResponse;
 import com.natera.qaquiz.models.TriangleRequest;
 import com.natera.qaquiz.models.TriangleResponse;
 import com.natura.qaquiz.BaseTest;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.val;
-import lombok.var;
-import org.hamcrest.Matchers;
-import org.hamcrest.number.IsCloseTo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,16 +33,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class TriangleServiceTests extends BaseTest {
 
-    public static final String SEPARATOR = ";";
+    public static final String SAMPLE_INPUT = "2;3;3";
+    public static final String SAMPLE_SEPARATOR = ";";
     public static final String MESSAGE = "message";
-    public static final String SIMPLE_INPUT = "2;3;3";
     public static final String LIMIT_EXCEEDED_MESSAGE = "Limit exceeded";
-    public static final String FIRST_SIDE_FIELD = "firstSide";
-    public static final String SECOND_SIDE_FIELD = "secondSide";
-    public static final String THIRD_SIDE_FIELD = "thirdSide";
     public static final String NON_EXISTENT_ID = "1cf52d36-d56f-4a5d-b8ec";
-    public static final String RESULT = "result";
-
 
     @BeforeEach
     void cleanUp() {
@@ -55,27 +46,27 @@ public class TriangleServiceTests extends BaseTest {
 
     @Test
     void shouldCreateTriangle() {
-        val response = createTestTriangle(SIMPLE_INPUT);
-        val sides = getInputArray();
+        val actualTriangle = createTestTriangle(SAMPLE_INPUT);
+        val originalSideValues = parseInputField(SAMPLE_INPUT, SAMPLE_SEPARATOR);
 
         assertAll(
-                () -> assertEquals(sides[0], response.getFirstSide()),
-                () -> assertEquals(sides[1], response.getSecondSide()),
-                () -> assertEquals(sides[2], response.getThirdSide())
+                () -> assertEquals(originalSideValues[0], actualTriangle.getFirstSide()),
+                () -> assertEquals(originalSideValues[1], actualTriangle.getSecondSide()),
+                () -> assertEquals(originalSideValues[2], actualTriangle.getThirdSide())
         );
     }
 
     @Test
     void shouldNotCreateMoreThanTenTriangles() {
 
-        for (int i = 0; i < 11; i++) {
-            createTestTriangle(SIMPLE_INPUT);
-        }
+        IntStream.range(0, 10)
+                .forEach(index ->
+                        createTestTriangle(SAMPLE_INPUT));
 
         createTriangle(TriangleRequest
                 .builder()
-                .separator(SEPARATOR)
-                .input(SIMPLE_INPUT)
+                .separator(SAMPLE_SEPARATOR)
+                .input(SAMPLE_INPUT)
                 .build())
                 .then()
                 .assertThat()
@@ -85,19 +76,23 @@ public class TriangleServiceTests extends BaseTest {
 
     @Test
     void shouldGetTriangleById() {
-        val sides = getInputArray();
-        getTriangleById(
-                createTestTriangle(SIMPLE_INPUT).getId())
-                .then()
-                .assertThat()
-                .statusCode(SC_OK)
-                .body(FIRST_SIDE_FIELD, equalTo(sides[0]))
-                .body(SECOND_SIDE_FIELD, equalTo(sides[1]))
-                .body(THIRD_SIDE_FIELD, equalTo(sides[2]));
+        val originalSideValues = parseInputField(SAMPLE_INPUT, SAMPLE_SEPARATOR);
+        val actualTriangle =
+                getTriangleById(createTestTriangle(SAMPLE_INPUT).getId())
+                        .then()
+                        .assertThat()
+                        .statusCode(SC_OK)
+                        .extract().as(TriangleResponse.class);
+
+        assertAll(
+                () -> assertEquals(originalSideValues[0], actualTriangle.getFirstSide()),
+                () -> assertEquals(originalSideValues[1], actualTriangle.getSecondSide()),
+                () -> assertEquals(originalSideValues[2], actualTriangle.getThirdSide())
+        );
     }
 
     @Test
-    void shouldNotGetTriangeWithWrongId() {
+    void shouldNotGetTriangleWithNonExistentId() {
         getTriangleById(NON_EXISTENT_ID)
                 .then()
                 .assertThat()
@@ -106,22 +101,23 @@ public class TriangleServiceTests extends BaseTest {
 
     @Test
     void shouldGetAllTriangles() {
-        for (int i = 0; i < 2; i++) {
-            createTestTriangle(SIMPLE_INPUT);
-        }
+        IntStream.range(0, 2)
+                .forEach(index ->
+                        createTestTriangle(SAMPLE_INPUT));
 
-        val trianglesCount = getAllTriangles()
+        val triangles = getAllTriangles()
                 .then()
                 .assertThat()
                 .statusCode(SC_OK)
                 .extract().as(TriangleResponse[].class);
-        assertEquals(trianglesCount.length, 2);
+
+        assertEquals(triangles.length, 2);
     }
 
 
     @Test
     void shouldDeleteTriangle() {
-        val triangleId = createTestTriangle(SIMPLE_INPUT).getId();
+        val triangleId = createTestTriangle(SAMPLE_INPUT).getId();
 
         deleteTriangle(triangleId)
                 .then()
@@ -135,10 +131,11 @@ public class TriangleServiceTests extends BaseTest {
     }
 
     @Test
-    void shouldNotDeleteTriangleWithWrongId() {
-        val triangleId = createTestTriangle(SIMPLE_INPUT).getId();
+    void shouldNotDeleteTriangleWithNonExistentId() {
+        val triangleId = createTestTriangle(SAMPLE_INPUT).getId();
+        val nonExistentId = triangleId.substring(0, 35);
 
-        deleteTriangle(triangleId.substring(0, 35))
+        deleteTriangle(nonExistentId)
                 .then()
                 .assertThat()
                 .statusCode(SC_OK);
@@ -149,53 +146,53 @@ public class TriangleServiceTests extends BaseTest {
                 .statusCode(SC_OK);
     }
 
-    @ParameterizedTest(name = "{index} {0}: input=\"{1}\" expected perimeter=\"{2}\"")
-    @MethodSource("perimeterTestData")
-    void shouldGetCorrectPerimeter(String description, String input, Double expectedPerimeter) {
+    @ParameterizedTest(name = "{index} {0}: input=\"{1}\"  separator=\"{2}\"")
+    @MethodSource("triangleTestData")
+    void shouldGetPerimeter(String description, String input, String separator) {
+        val originalSideValues = parseInputField(input, separator);
         val triangleId = createTestTriangle(input).getId();
 
         val actualResult = getPerimeter(triangleId)
                 .then()
                 .assertThat()
                 .statusCode(SC_OK)
-                .extract().jsonPath().get(RESULT);
-        assertEquals(expectedPerimeter, actualResult);
+                .extract().as(ResultResponse.class).getResult();
+
+        assertEquals(getExpectedPerimeter(originalSideValues), actualResult);
     }
 
-    @Test
-    void shouldReturnErrorWhenPerimeterIsTooLarge() {
-        var input = String.format("%s%s%s%s%s", MAX_VALUE, SEPARATOR, MAX_VALUE, SEPARATOR,
-                MAX_VALUE);
-        var expectedResult = "Infinity";
-        val triangleId = createTestTriangle(input).getId();
-
-        val actualResult = getPerimeter(triangleId)
-                .then()
-                .assertThat()
-                .statusCode(SC_UNPROCESSABLE_ENTITY)
-                .extract().jsonPath().get(RESULT);
-        assertEquals(expectedResult, actualResult);
-
-    }
-
-    @ParameterizedTest(name = "{index} {0}: input=\"{1}\" expected area=\"{2}\"")
-    @MethodSource("areaTestData")
-    void shouldGetArea(String description, String input, int expectedArea) {
+    @ParameterizedTest(name = "{index} {0}: input=\"{1}\"  separator=\"{2}\"")
+    @MethodSource("triangleTestData")
+    void shouldGetArea(String description, String input, String separator) {
+        val originalSideValues = parseInputField(input, separator);
         val triangleId = createTestTriangle(input).getId();
 
         val actualResult = getArea(triangleId)
                 .then()
                 .assertThat()
                 .statusCode(SC_OK)
-                .extract().jsonPath().get(RESULT);
-        assertEquals(new Float( 2.828427), actualResult);
+                .extract().as(ResultResponse.class).getResult();
 
+        assertEquals(getExpectedArea(originalSideValues), actualResult);
+
+    }
+
+    private Double getExpectedPerimeter(Double[] originalSideValues) {
+        return IntStream.of(0, 1, 2).mapToDouble(i -> originalSideValues[i]).sum();
+    }
+
+    private Double getExpectedArea(Double[] originalSideValues) {
+        Double a = originalSideValues[0];
+        Double b = originalSideValues[1];
+        Double c = originalSideValues[2];
+        double p = (a + b + c) / 2;
+        return Math.sqrt(p * (p - a) * (p - b) * (p - c));
     }
 
     private TriangleResponse createTestTriangle(String input) {
         return createTriangle(TriangleRequest
                 .builder()
-                .separator(SEPARATOR)
+                .separator(SAMPLE_SEPARATOR)
                 .input(input)
                 .build())
                 .then()
@@ -204,25 +201,17 @@ public class TriangleServiceTests extends BaseTest {
                 .extract().as(TriangleResponse.class);
     }
 
-    private Double[] getInputArray() {
-        return Arrays.stream(SIMPLE_INPUT.split(SEPARATOR))
+    private Double[] parseInputField(String input, String separator) {
+        return Arrays.stream(input.split(separator))
                 .map(Double::valueOf).collect(toList()).toArray(new Double[] {});
     }
 
-    private static Stream<Arguments> perimeterTestData() {
+    private static Stream<Arguments> triangleTestData() {
         return Stream.of(
-                of("Positive case", "2;3;3", new Double( 8.0)),
-                of("Big num", String.format("%s%s%s%s%s", MAX_VALUE + 1, SEPARATOR, MAX_VALUE, SEPARATOR,
-                        MAX_VALUE), new Double(MAX_VALUE*3))
+                of("Side values are positive integer", "2;3;3", ";"),
+                of("Side values are max double values",
+                        String.format("%s%s%s%s%s", MAX_VALUE, SAMPLE_SEPARATOR, MAX_VALUE, SAMPLE_SEPARATOR,
+                                MAX_VALUE), ";")
         );
     }
-
-    private static Stream<Arguments> areaTestData() {
-        return Stream.of(
-                of("Valid separator and input", ",", "1,2,3", SC_OK),
-                of("Missed second side", ",", "1,3", SC_UNPROCESSABLE_ENTITY)
-        );
-    }
-
-
 }
